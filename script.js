@@ -1,110 +1,173 @@
+/**
+ * script.js
+ * UI上でのエラー表示に対応
+ */
+
 const calcBtn = document.getElementById('calcBtn');
 const status = document.getElementById('status');
+const errorMsg = document.getElementById('error-msg');
 const resultGrid = document.getElementById('resultGrid');
 
-/**
- * Minecraft BE ダメージシミュレーション (32bit float 厳密再現)
-  */
-  function simulate(baseAtk, strLv, wkWv, isCrit) {
-      let current = Math.fround(baseAtk);
+const i18n = {
+    ja: {
+        title: "MCBE ダメージ最適化 v3",
+        labelBase: "基礎攻撃力 (Base Attack)",
+        labelTarget: "目標ダメージ (Target Damage)",
+        labelCrit: "クリティカルヒット (x1.5)",
+        btnCalc: "最適な組み合わせを計算",
+        statusCalc: "計算中...",
+        p1Title: "【1】目標に最も近い数値",
+        p2Title: "【2】目標以上で最も近い数値",
+        orderLabel: "計算順序:",
+        orderVal: "基礎 → Strength → Weakness → Critical",
+        footerPre: "このサイトは",
+        footerPost: "及び、Google Geminiによって作成されました。",
+        errorInvalid: "数値を正しく入力してください。",
+        errorBase: "基礎攻撃力には0より大きい数値を入力してください。",
+        errorTarget: "目標ダメージには0以上の数値を入力してください。",
+        none: "なし",
+        unreachable: "到達不可",
+        errorLabel: "誤差"
+    },
+    en: {
+        title: "MCBE Damage Optimizer v3",
+        labelBase: "Base Attack",
+        labelTarget: "Target Damage",
+        labelCrit: "Critical Hit (x1.5)",
+        btnCalc: "Calculate Best Match",
+        statusCalc: "Calculating...",
+        p1Title: "[1] Closest to Target",
+        p2Title: "[2] Closest ≥ Target",
+        orderLabel: "Order:",
+        orderVal: "Base → Strength → Weakness → Critical",
+        footerPre: "Created by ",
+        footerPost: " and Google Gemini.",
+        errorInvalid: "Please enter valid numbers.",
+        errorBase: "Base Attack must be greater than 0.",
+        errorTarget: "Target Damage must be 0 or more.",
+        none: "None",
+        unreachable: "Unreachable",
+        errorLabel: "Error"
+    }
+};
 
-          // 1. 攻撃力上昇 (Strength)
-              const strMult = Math.fround(1.3);
-                  const strPlus = Math.fround(1.0);
-                      // Level 0で1回、Level 255で256回反復
-                          for (let i = 0; i <= strLv; i++) {
-                                  current = Math.fround(current * strMult);
-                                          current = Math.fround(current + strPlus);
-                                              }
+const lang = navigator.language.startsWith('ja') ? 'ja' : 'en';
+const t = i18n[lang];
 
-                                                  // 2. 弱体化 (Weakness)
-                                                      const wkMult = Math.fround(0.8);
-                                                          const wkMinus = Math.fround(0.5);
-                                                              // Level 0で1回、Level 255で256回反復
-                                                                  for (let i = 0; i <= wkWv; i++) {
-                                                                          current = Math.fround(current * wkMult - wkMinus);
-                                                                              }
+function applyLanguage() {
+    document.getElementById('ui-title').innerText = t.title;
+    document.getElementById('ui-label-base').innerText = t.labelBase;
+    document.getElementById('ui-label-target').innerText = t.labelTarget;
+    document.getElementById('ui-label-crit').innerText = t.labelCrit;
+    calcBtn.innerText = t.btnCalc;
+    document.getElementById('ui-p1-title').innerText = t.p1Title;
+    document.getElementById('ui-p2-title').innerText = t.p2Title;
+    document.getElementById('ui-order-label').innerText = t.orderLabel;
+    document.getElementById('ui-order-val').innerText = t.orderVal;
+    document.getElementById('ui-footer-text').innerText = t.footerPre;
+    document.getElementById('ui-footer-gemini').innerText = t.footerPost;
+}
+applyLanguage();
 
-                                                                                  // 3. クリティカルヒット (最後に計算)
-                                                                                      if (isCrit) {
-                                                                                              current = Math.fround(current * Math.fround(1.5));
-                                                                                                  }
+function simulate(baseAtk, strLv, wkWv, isCrit) {
+    let current = Math.fround(baseAtk);
+    if (strLv >= 1) {
+        const strMult = Math.fround(1.3);
+        const strPlus = Math.fround(1.0);
+        for (let i = 0; i <= strLv; i++) {
+            current = Math.fround(current * strMult);
+            current = Math.fround(current + strPlus);
+        }
+    }
+    if (wkWv >= 1) {
+        const wkMult = Math.fround(0.8);
+        const wkMinus = Math.fround(0.5);
+        for (let i = 0; i <= wkWv; i++) {
+            current = Math.fround(current * wkMult - wkMinus);
+        }
+    }
+    if (isCrit) {
+        current = Math.fround(current * Math.fround(1.5));
+    }
+    return current <= 0 ? 0 : current;
+}
 
-                                                                                                      return current;
-                                                                                                      }
+calcBtn.addEventListener('click', () => {
+    // エラー表示と結果エリアをリセット
+    errorMsg.innerText = "";
+    resultGrid.style.display = 'none';
 
-                                                                                                      /**
-                                                                                                       * 計算実行イベント
-                                                                                                        */
-                                                                                                        calcBtn.addEventListener('click', () => {
-                                                                                                            const baseAtk = parseFloat(document.getElementById('baseAtk').value) || 0;
-                                                                                                                const target = parseFloat(document.getElementById('targetDmg').value) || 0;
-                                                                                                                    const isCrit = document.getElementById('isCritical').checked;
+    const baseRaw = document.getElementById('baseAtk').value;
+    const targetRaw = document.getElementById('targetDmg').value;
+    const isCrit = document.getElementById('isCritical').checked;
 
-                                                                                                                        calcBtn.disabled = true;
-                                                                                                                            status.innerText = "65,536パターンを走査中...";
+    // バリデーション
+    if (!baseRaw || !targetRaw || isNaN(parseFloat(baseRaw)) || isNaN(parseFloat(targetRaw))) {
+        errorMsg.innerText = t.errorInvalid;
+        return;
+    }
 
-                                                                                                                                // UIの描画更新を妨げないようにsetTimeoutを使用
-                                                                                                                                    setTimeout(() => {
-                                                                                                                                            // パターン1: 目標に最も近い数値 (絶対誤差)
-                                                                                                                                                    let p1BestDiff = Infinity;
-                                                                                                                                                            let p1Res = 0, p1Str = 0, p1Wk = 0;
+    const baseAtk = parseFloat(baseRaw);
+    const targetDmg = parseFloat(targetRaw);
 
-                                                                                                                                                                    // パターン2: 目標以上で最も近い数値
-                                                                                                                                                                            let p2BestDiff = Infinity;
-                                                                                                                                                                                    let p2Res = 0, p2Str = 0, p2Wk = 0;
+    if (baseAtk <= 0) {
+        errorMsg.innerText = t.errorBase;
+        return;
+    }
+    if (targetDmg < 0) {
+        errorMsg.innerText = t.errorTarget;
+        return;
+    }
 
-                                                                                                                                                                                            for (let s = 0; s <= 255; s++) {
-                                                                                                                                                                                                        for (let w = 0; w <= 255; w++) {
-                                                                                                                                                                                                                        const res = simulate(baseAtk, s, w, isCrit);
-                                                                                                                                                                                                                                        
-                                                                                                                                                                                                                                                        // パターン1の更新
-                                                                                                                                                                                                                                                                        const diff1 = Math.abs(res - target);
-                                                                                                                                                                                                                                                                                        if (diff1 < p1BestDiff) {
-                                                                                                                                                                                                                                                                                                            p1BestDiff = diff1;
-                                                                                                                                                                                                                                                                                                                                p1Res = res;
-                                                                                                                                                                                                                                                                                                                                                    p1Str = s;
-                                                                                                                                                                                                                                                                                                                                                                        p1Wk = w;
-                                                                                                                                                                                                                                                                                                                                                                                        }
+    calcBtn.disabled = true;
+    status.innerText = t.statusCalc;
 
-                                                                                                                                                                                                                                                                                                                                                                                                        // パターン2の更新
-                                                                                                                                                                                                                                                                                                                                                                                                                        if (res >= target) {
-                                                                                                                                                                                                                                                                                                                                                                                                                                            const diff2 = res - target;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                if (diff2 < p2BestDiff) {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        p2BestDiff = diff2;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                p2Res = res;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        p2Str = s;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                p2Wk = w;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        }
+    setTimeout(() => {
+        let p1BestDiff = Infinity;
+        let p1Res = 0, p1Str = -1, p1Wk = -1;
+        let p2BestDiff = Infinity;
+        let p2Res = 0, p2Str = -1, p2Wk = -1;
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                // 表示結果の更新
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        displayResult('p1', p1Res, p1Str, p1Wk, target);
+        const levels = [-1];
+        for (let l = 1; l <= 255; l++) levels.push(l);
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                if (p2BestDiff === Infinity) {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            document.getElementById('p2_val').innerText = "到達不可";
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        document.getElementById('p2_err').innerText = "-";
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                } else {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            displayResult('p2', p2Res, p2Str, p2Wk, target);
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    }
+        for (const s of levels) {
+            for (const w of levels) {
+                const res = simulate(baseAtk, s, w, isCrit);
+                const diff1 = Math.abs(res - targetDmg);
+                if (diff1 < p1BestDiff) {
+                    p1BestDiff = diff1; p1Res = res; p1Str = s; p1Wk = w;
+                }
+                if (res >= targetDmg) {
+                    const diff2 = res - targetDmg;
+                    if (diff2 < p2BestDiff) {
+                        p2BestDiff = diff2; p2Res = res; p2Str = s; p2Wk = w;
+                    }
+                }
+            }
+        }
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            resultGrid.style.display = 'grid';
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    status.innerText = "";
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            calcBtn.disabled = false;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                }, 50);
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                });
+        displayResult('p1', p1Res, p1Str, p1Wk, targetDmg);
+        if (p2BestDiff === Infinity) {
+            document.getElementById('p2_val').innerText = t.unreachable;
+            document.getElementById('p2_err').innerText = "-";
+            document.getElementById('p2_str').innerText = "-";
+            document.getElementById('p2_wk').innerText = "-";
+        } else {
+            displayResult('p2', p2Res, p2Str, p2Wk, targetDmg);
+        }
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                /**
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 * 各カードに結果を反映する関数
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  */
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  function displayResult(prefix, val, str, wk, target) {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      const diff = val - target;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          const diffSign = diff >= 0 ? "+" : "";
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  document.getElementById(`${prefix}_val`).innerText = val.toLocaleString();
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      document.getElementById(`${prefix}_err`).innerText = `誤差: ${diffSign}${diff.toLocaleString()}`;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          document.getElementById(`${prefix}_str`).innerText = str;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              document.getElementById(`${prefix}_wk`).innerText = wk;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              }
+        resultGrid.style.display = 'grid';
+        status.innerText = "";
+        calcBtn.disabled = false;
+    }, 50);
+});
+
+function displayResult(prefix, val, str, wk, target) {
+    const diff = val - target;
+    const diffSign = diff >= 0 ? "+" : "";
+    document.getElementById(`${prefix}_val`).innerText = val.toLocaleString();
+    document.getElementById(`${prefix}_err`).innerText = `${t.errorLabel}: ${diffSign}${diff.toLocaleString()}`;
+    document.getElementById(`${prefix}_str`).innerText = str === -1 ? t.none : str;
+    document.getElementById(`${prefix}_wk`).innerText = wk === -1 ? t.none : wk;
+}
