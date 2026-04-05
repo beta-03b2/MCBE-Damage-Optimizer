@@ -1,6 +1,6 @@
 /**
  * script.js
- * MCBE ダメージ逆算ツール
+ * MCBE ダメージ逆算ツール - 計算ロジック厳密化版
  */
 
 const calcBtn = document.getElementById('calcBtn');
@@ -75,26 +75,37 @@ function applyLanguage() {
 }
 applyLanguage();
 
+/**
+ * ダメージシミュレーション
+ * Minecraft BEでは レベルn の時、(n+1)回のループ処理が行われる
+ * 例: レベル1 (内部値0) -> 2回計算
+ */
 function simulate(baseAtk, strLv, wkWv, isCrit) {
     let current = Math.fround(baseAtk);
 
-    if (strLv >= 1) {
+    // 1. Strength (攻撃力上昇)
+    if (strLv >= 0) {
         const strMult = Math.fround(1.3);
         const strPlus = Math.fround(1.0);
-        for (let i = 0; i <= strLv; i++) {
+        // レベルnに対して (n+1)回計算を行う
+        // strLv=0(Lv1)のとき、i=0,1 の2回実行される
+        for (let i = 0; i <= (strLv + 1); i++) {
             current = Math.fround(current * strMult);
             current = Math.fround(current + strPlus);
         }
     }
 
-    if (wkWv >= 1) {
+    // 2. Weakness (弱体化)
+    if (wkWv >= 0) {
         const wkMult = Math.fround(0.8);
         const wkMinus = Math.fround(0.5);
-        for (let i = 0; i <= wkWv; i++) {
+        // 同様にレベルnに対して (n+1)回計算
+        for (let i = 0; i <= (wkWv + 1); i++) {
             current = Math.fround(current * wkMult - wkMinus);
         }
     }
 
+    // 3. Critical
     if (isCrit) {
         current = Math.fround(current * Math.fround(1.5));
     }
@@ -129,15 +140,17 @@ calcBtn.addEventListener('click', () => {
         let p2BestDiff = Infinity, p2Res = 0, p2Str = -1, p2Wk = -1;
 
         const levels = [-1]; 
-        for (let l = 0; l <= 254; l++) levels.push(l);
+        for (let l = 0; l <= 254; l++) levels.push(l); // 0がレベル1、254がレベル255
 
         for (const s of levels) {
             for (const w of levels) {
                 const res = simulate(baseAtk, s, w, isCrit);
+                
                 const d1 = Math.abs(res - targetDmg);
                 if (d1 < p1BestDiff) {
                     p1BestDiff = d1; p1Res = res; p1Str = s; p1Wk = w;
                 }
+
                 if (res >= targetDmg) {
                     const d2 = res - targetDmg;
                     if (d2 < p2BestDiff) {
@@ -168,6 +181,8 @@ function displayResult(prefix, val, str, wk, target) {
     const diffSign = diff >= 0 ? "+" : "";
     document.getElementById(`${prefix}_val`).innerText = val.toLocaleString();
     document.getElementById(`${prefix}_err`).innerText = `${t.errorLabel}: ${diffSign}${diff.toLocaleString()}`;
+    
+    // 表示の修正
     document.getElementById(`${prefix}_str`).innerText = str === -1 ? t.none : (str + 1);
     document.getElementById(`${prefix}_wk`).innerText = wk === -1 ? t.none : (wk + 1);
 }
