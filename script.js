@@ -1,6 +1,6 @@
 /**
  * script.js
- * UI上でのエラー表示に対応
+ * MCBE ダメージ逆算ツール
  */
 
 const calcBtn = document.getElementById('calcBtn');
@@ -8,9 +8,10 @@ const status = document.getElementById('status');
 const errorMsg = document.getElementById('error-msg');
 const resultGrid = document.getElementById('resultGrid');
 
+// 多言語リソース
 const i18n = {
     ja: {
-        title: "MCBE ダメージ最適化 v3",
+        title: "MCBE ダメージ逆算ツール",
         labelBase: "基礎攻撃力 (Base Attack)",
         labelTarget: "目標ダメージ (Target Damage)",
         labelCrit: "クリティカルヒット (x1.5)",
@@ -20,6 +21,7 @@ const i18n = {
         p2Title: "【2】目標以上で最も近い数値",
         orderLabel: "計算順序:",
         orderVal: "基礎 → Strength → Weakness → Critical",
+        mobNotice: "MOBからプレイヤーに与えるダメージを計算する場合は、難易度によって変化するため、正しく計算が出来ない場合があります。",
         footerPre: "このサイトは",
         footerPost: "及び、Google Geminiによって作成されました。",
         errorInvalid: "数値を正しく入力してください。",
@@ -30,7 +32,7 @@ const i18n = {
         errorLabel: "誤差"
     },
     en: {
-        title: "MCBE Damage Optimizer v3",
+        title: "MCBE Damage Reverse Calculator",
         labelBase: "Base Attack",
         labelTarget: "Target Damage",
         labelCrit: "Critical Hit (x1.5)",
@@ -40,6 +42,7 @@ const i18n = {
         p2Title: "[2] Closest ≥ Target",
         orderLabel: "Order:",
         orderVal: "Base → Strength → Weakness → Critical",
+        mobNotice: "When calculating damage dealt by mobs to players, correct calculations may not be possible as it varies by difficulty.",
         footerPre: "Created by ",
         footerPost: " and Google Gemini.",
         errorInvalid: "Please enter valid numbers.",
@@ -66,11 +69,15 @@ function applyLanguage() {
     document.getElementById('ui-order-val').innerText = t.orderVal;
     document.getElementById('ui-footer-text').innerText = t.footerPre;
     document.getElementById('ui-footer-gemini').innerText = t.footerPost;
+    
+    const mobNoticeEl = document.getElementById('ui-mob-notice');
+    if (mobNoticeEl) mobNoticeEl.innerText = t.mobNotice;
 }
 applyLanguage();
 
 function simulate(baseAtk, strLv, wkWv, isCrit) {
     let current = Math.fround(baseAtk);
+
     if (strLv >= 1) {
         const strMult = Math.fround(1.3);
         const strPlus = Math.fround(1.0);
@@ -79,6 +86,7 @@ function simulate(baseAtk, strLv, wkWv, isCrit) {
             current = Math.fround(current + strPlus);
         }
     }
+
     if (wkWv >= 1) {
         const wkMult = Math.fround(0.8);
         const wkMinus = Math.fround(0.5);
@@ -86,14 +94,15 @@ function simulate(baseAtk, strLv, wkWv, isCrit) {
             current = Math.fround(current * wkMult - wkMinus);
         }
     }
+
     if (isCrit) {
         current = Math.fround(current * Math.fround(1.5));
     }
+
     return current <= 0 ? 0 : current;
 }
 
 calcBtn.addEventListener('click', () => {
-    // エラー表示と結果エリアをリセット
     errorMsg.innerText = "";
     resultGrid.style.display = 'none';
 
@@ -101,7 +110,6 @@ calcBtn.addEventListener('click', () => {
     const targetRaw = document.getElementById('targetDmg').value;
     const isCrit = document.getElementById('isCritical').checked;
 
-    // バリデーション
     if (!baseRaw || !targetRaw || isNaN(parseFloat(baseRaw)) || isNaN(parseFloat(targetRaw))) {
         errorMsg.innerText = t.errorInvalid;
         return;
@@ -110,38 +118,30 @@ calcBtn.addEventListener('click', () => {
     const baseAtk = parseFloat(baseRaw);
     const targetDmg = parseFloat(targetRaw);
 
-    if (baseAtk <= 0) {
-        errorMsg.innerText = t.errorBase;
-        return;
-    }
-    if (targetDmg < 0) {
-        errorMsg.innerText = t.errorTarget;
-        return;
-    }
+    if (baseAtk <= 0) { errorMsg.innerText = t.errorBase; return; }
+    if (targetDmg < 0) { errorMsg.innerText = t.errorTarget; return; }
 
     calcBtn.disabled = true;
     status.innerText = t.statusCalc;
 
     setTimeout(() => {
-        let p1BestDiff = Infinity;
-        let p1Res = 0, p1Str = -1, p1Wk = -1;
-        let p2BestDiff = Infinity;
-        let p2Res = 0, p2Str = -1, p2Wk = -1;
+        let p1BestDiff = Infinity, p1Res = 0, p1Str = -1, p1Wk = -1;
+        let p2BestDiff = Infinity, p2Res = 0, p2Str = -1, p2Wk = -1;
 
-        const levels = [-1];
-        for (let l = 1; l <= 255; l++) levels.push(l);
+        const levels = [-1]; 
+        for (let l = 0; l <= 254; l++) levels.push(l);
 
         for (const s of levels) {
             for (const w of levels) {
                 const res = simulate(baseAtk, s, w, isCrit);
-                const diff1 = Math.abs(res - targetDmg);
-                if (diff1 < p1BestDiff) {
-                    p1BestDiff = diff1; p1Res = res; p1Str = s; p1Wk = w;
+                const d1 = Math.abs(res - targetDmg);
+                if (d1 < p1BestDiff) {
+                    p1BestDiff = d1; p1Res = res; p1Str = s; p1Wk = w;
                 }
                 if (res >= targetDmg) {
-                    const diff2 = res - targetDmg;
-                    if (diff2 < p2BestDiff) {
-                        p2BestDiff = diff2; p2Res = res; p2Str = s; p2Wk = w;
+                    const d2 = res - targetDmg;
+                    if (d2 < p2BestDiff) {
+                        p2BestDiff = d2; p2Res = res; p2Str = s; p2Wk = w;
                     }
                 }
             }
@@ -168,6 +168,6 @@ function displayResult(prefix, val, str, wk, target) {
     const diffSign = diff >= 0 ? "+" : "";
     document.getElementById(`${prefix}_val`).innerText = val.toLocaleString();
     document.getElementById(`${prefix}_err`).innerText = `${t.errorLabel}: ${diffSign}${diff.toLocaleString()}`;
-    document.getElementById(`${prefix}_str`).innerText = str === -1 ? t.none : str;
-    document.getElementById(`${prefix}_wk`).innerText = wk === -1 ? t.none : wk;
+    document.getElementById(`${prefix}_str`).innerText = str === -1 ? t.none : (str + 1);
+    document.getElementById(`${prefix}_wk`).innerText = wk === -1 ? t.none : (wk + 1);
 }

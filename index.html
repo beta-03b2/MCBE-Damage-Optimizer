@@ -3,13 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MCBE Damage Optimizer v3</title>
+    
+    <title>MCBE Damage Reverse Calculator</title>
+    <meta name="description" content="Minecraft 統合版のダメージシミュレーター。与えたいダメージから最適な攻撃エフェクト（Strength/Weakness）の組み合わせを瞬時に計算します。">
+    <meta name="keywords" content="Minecraft, BE, マイクラ, ダメージ計算, 逆算, エフェクト, 最適化">
+
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="MCBE Damage Reverse Calculator">
+    <meta property="og:description" content="基礎攻撃力と与えたいダメージから攻撃力上昇と弱体化の最適な組み合わせを逆算。">
+    <meta property="og:image" content="og-image.png">
+    <meta property="og:site_name" content="MCBE ダメージ逆算ツール">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@beta03B2">
+    <meta name="twitter:title" content="MCBE Damage Reverse Calculator">
+    <meta name="twitter:description" content="基礎攻撃力と与えたいダメージから攻撃力上昇と弱体化の最適な組み合わせを逆算。">
+    <meta name="twitter:image" content="og-image.png">
+
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="container">
-    <h1 id="ui-title">MCBE Damage Optimizer v3</h1>
+    <h1 id="ui-title">MCBE ダメージ逆算ツール</h1>
 
     <div class="input-card">
         <div class="field">
@@ -20,11 +39,13 @@
             <label id="ui-label-target">目標ダメージ (Target Damage)</label>
             <input type="number" id="targetDmg" value="1" step="any">
         </div>
+
         <div class="field">
             <label class="checkbox-field">
                 <input type="checkbox" id="isCritical"> <span id="ui-label-crit">クリティカルヒット (x1.5)</span>
             </label>
         </div>
+
         <div id="error-msg" class="error-display"></div>
     </div>
 
@@ -55,6 +76,7 @@
 
     <div class="formula-info">
         <b id="ui-order-label">計算順序:</b> <span id="ui-order-val">基礎 → Strength → Weakness → Critical</span>
+        <p id="ui-mob-notice" style="margin-top: 8px; font-style: italic; opacity: 0.8;"></p>
     </div>
 
     <footer class="footer">

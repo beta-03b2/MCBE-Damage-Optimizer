@@ -10,6 +10,7 @@
     --border: #dddddd;
     --input-bg: #ffffff;
     --formula-bg: #eeeeee;
+    --error: #e74c3c;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -23,6 +24,7 @@
         --border: #444444;
         --input-bg: #252525;
         --formula-bg: #2d2d2d;
+        --error: #ff6b6b;
     }
 }
 
@@ -113,6 +115,23 @@ button:disabled {
     cursor: not-allowed;
 }
 
+.error-display {
+    color: var(--error);
+    font-size: 0.85rem;
+    font-weight: bold;
+    margin-top: 10px;
+    min-height: 1.2em;
+    text-align: center;
+}
+
+.warning-text {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    text-align: center;
+    margin-top: 10px;
+    line-height: 1.4;
+}
+
 .result-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -128,13 +147,8 @@ button:disabled {
     border-radius: 10px;
 }
 
-.result-card.best {
-    border-color: var(--primary);
-}
-
-.result-card.over {
-    border-color: var(--accent);
-}
+.result-card.best { border-color: var(--primary); }
+.result-card.over { border-color: var(--accent); }
 
 .card-title {
     font-size: 0.8rem;
@@ -199,24 +213,12 @@ button:disabled {
     font-weight: bold;
 }
 
+.footer a:hover {
+    text-decoration: underline;
+}
+
 @media (max-width: 480px) {
     .result-grid {
         grid-template-columns: 1fr;
-    }
-}
-
-.error-display {
-    color: #e74c3c;
-    font-size: 0.85rem;
-    font-weight: bold;
-    margin-top: 10px;
-    min-height: 1.2em;
-    text-align: center;
-}
-
-/* ダークモード時のエラー色調整 */
-@media (prefers-color-scheme: dark) {
-    .error-display {
-        color: #ff6b6b;
     }
 }
