@@ -1,6 +1,6 @@
 /**
  * script.js
- * MCBE ダメージ逆算ツール - 計算ロジック厳密化版
+ * MCBE ダメージ逆算ツール - 内部レベル準拠版 (Lv0-255)
  */
 
 const calcBtn = document.getElementById('calcBtn');
@@ -77,8 +77,8 @@ applyLanguage();
 
 /**
  * ダメージシミュレーション
- * Minecraft BEでは レベルn の時、(n+1)回のループ処理が行われる
- * 例: レベル1 (内部値0) -> 2回計算
+ * strLv: -1=なし, 0=Lv0, 1=Lv1...
+ * 各レベルにつき1回計算 (Lv0なら1回、Lv1なら2回)
  */
 function simulate(baseAtk, strLv, wkWv, isCrit) {
     let current = Math.fround(baseAtk);
@@ -87,9 +87,8 @@ function simulate(baseAtk, strLv, wkWv, isCrit) {
     if (strLv >= 0) {
         const strMult = Math.fround(1.3);
         const strPlus = Math.fround(1.0);
-        // レベルnに対して (n+1)回計算を行う
-        // strLv=0(Lv1)のとき、i=0,1 の2回実行される
-        for (let i = 0; i <= (strLv + 1); i++) {
+        // i=0 から strLv まで回すことで、Lv0なら1回、Lv255なら256回計算される
+        for (let i = 0; i <= strLv; i++) {
             current = Math.fround(current * strMult);
             current = Math.fround(current + strPlus);
         }
@@ -99,8 +98,7 @@ function simulate(baseAtk, strLv, wkWv, isCrit) {
     if (wkWv >= 0) {
         const wkMult = Math.fround(0.8);
         const wkMinus = Math.fround(0.5);
-        // 同様にレベルnに対して (n+1)回計算
-        for (let i = 0; i <= (wkWv + 1); i++) {
+        for (let i = 0; i <= wkWv; i++) {
             current = Math.fround(current * wkMult - wkMinus);
         }
     }
@@ -140,7 +138,7 @@ calcBtn.addEventListener('click', () => {
         let p2BestDiff = Infinity, p2Res = 0, p2Str = -1, p2Wk = -1;
 
         const levels = [-1]; 
-        for (let l = 0; l <= 254; l++) levels.push(l); // 0がレベル1、254がレベル255
+        for (let l = 0; l <= 255; l++) levels.push(l); // 0〜255レベル
 
         for (const s of levels) {
             for (const w of levels) {
@@ -182,7 +180,7 @@ function displayResult(prefix, val, str, wk, target) {
     document.getElementById(`${prefix}_val`).innerText = val.toLocaleString();
     document.getElementById(`${prefix}_err`).innerText = `${t.errorLabel}: ${diffSign}${diff.toLocaleString()}`;
     
-    // 表示の修正
-    document.getElementById(`${prefix}_str`).innerText = str === -1 ? t.none : (str + 1);
-    document.getElementById(`${prefix}_wk`).innerText = wk === -1 ? t.none : (wk + 1);
+    // 表示の修正: -1なら「なし」、それ以外は数値をそのまま表示
+    document.getElementById(`${prefix}_str`).innerText = str === -1 ? t.none : str;
+    document.getElementById(`${prefix}_wk`).innerText = wk === -1 ? t.none : wk;
 }
