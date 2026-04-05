@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <title>MCBE Damage Reverse Calculator</title>
+    <title>MCBE ダメージ逆算ツール</title>
     <meta name="description" content="Minecraft 統合版のダメージシミュレーター。与えたいダメージから最適な攻撃エフェクト（Strength/Weakness）の組み合わせを瞬時に計算します。">
     <meta name="keywords" content="Minecraft, BE, マイクラ, ダメージ計算, 逆算, エフェクト, 最適化">
 
@@ -12,17 +12,16 @@
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
     <meta property="og:type" content="website">
-    <meta property="og:title" content="MCBE Damage Reverse Calculator">
+    <meta property="og:title" content="MCBE ダメージ逆算ツール">
     <meta property="og:description" content="基礎攻撃力と与えたいダメージから攻撃力上昇と弱体化の最適な組み合わせを逆算。">
     <meta property="og:image" content="og-image.png">
     <meta property="og:site_name" content="MCBE ダメージ逆算ツール">
 
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:site" content="@beta03B2">
-    <meta name="twitter:title" content="MCBE Damage Reverse Calculator">
+    <meta name="twitter:title" content="MCBE ダメージ逆算ツール">
     <meta name="twitter:description" content="基礎攻撃力と与えたいダメージから攻撃力上昇と弱体化の最適な組み合わせを逆算。">
     <meta name="twitter:image" content="og-image.png">
-    <meta name="google-site-verification" content="jhaHymrnXoKkrjAqJtHN6yYN4q1gGvhPswZzl66MN8M" />
 
     <link rel="stylesheet" href="style.css">
 </head>
@@ -77,6 +76,7 @@
 
     <div class="formula-info">
         <b id="ui-order-label">計算順序:</b> <span id="ui-order-val">基礎 → Strength → Weakness → Critical</span>
+        <p id="ui-lvl-warning" class="warning-text" style="margin-top: 10px; color: var(--error); font-weight: bold;"></p>
         <p id="ui-mob-notice" style="margin-top: 8px; font-style: italic; opacity: 0.8;"></p>
     </div>
 

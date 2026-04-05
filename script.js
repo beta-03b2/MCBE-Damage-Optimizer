@@ -1,6 +1,6 @@
 /**
  * script.js
- * MCBE ダメージ逆算ツール - 内部レベル準拠版 (Lv0-255)
+ * MCBE ダメージ逆算ツール
  */
 
 const calcBtn = document.getElementById('calcBtn');
@@ -21,6 +21,7 @@ const i18n = {
         p2Title: "【2】目標以上で最も近い数値",
         orderLabel: "計算順序:",
         orderVal: "基礎 → Strength → Weakness → Critical",
+        lvlWarning: "※表示されるレベルはコマンド等で使用する内部値(0-255)です。ゲーム内のステータス画面では、これに+1されたレベルが表示されます。",
         mobNotice: "MOBからプレイヤーに与えるダメージを計算する場合は、難易度によって変化するため、正しく計算が出来ない場合があります。",
         footerPre: "このサイトは",
         footerPost: "及び、Google Geminiによって作成されました。",
@@ -42,6 +43,7 @@ const i18n = {
         p2Title: "[2] Closest ≥ Target",
         orderLabel: "Order:",
         orderVal: "Base → Strength → Weakness → Critical",
+        lvlWarning: "*Levels shown are internal values (0-255) used in commands. The in-game status screen will display these levels +1.",
         mobNotice: "When calculating damage dealt by mobs to players, correct calculations may not be possible as it varies by difficulty.",
         footerPre: "Created by ",
         footerPost: " and Google Gemini.",
@@ -70,31 +72,24 @@ function applyLanguage() {
     document.getElementById('ui-footer-text').innerText = t.footerPre;
     document.getElementById('ui-footer-gemini').innerText = t.footerPost;
     
-    const mobNoticeEl = document.getElementById('ui-mob-notice');
-    if (mobNoticeEl) mobNoticeEl.innerText = t.mobNotice;
+    // 警告文と注釈の適用
+    document.getElementById('ui-lvl-warning').innerText = t.lvlWarning;
+    document.getElementById('ui-mob-notice').innerText = t.mobNotice;
 }
 applyLanguage();
 
-/**
- * ダメージシミュレーション
- * strLv: -1=なし, 0=Lv0, 1=Lv1...
- * 各レベルにつき1回計算 (Lv0なら1回、Lv1なら2回)
- */
 function simulate(baseAtk, strLv, wkWv, isCrit) {
     let current = Math.fround(baseAtk);
 
-    // 1. Strength (攻撃力上昇)
     if (strLv >= 0) {
         const strMult = Math.fround(1.3);
         const strPlus = Math.fround(1.0);
-        // i=0 から strLv まで回すことで、Lv0なら1回、Lv255なら256回計算される
         for (let i = 0; i <= strLv; i++) {
             current = Math.fround(current * strMult);
             current = Math.fround(current + strPlus);
         }
     }
 
-    // 2. Weakness (弱体化)
     if (wkWv >= 0) {
         const wkMult = Math.fround(0.8);
         const wkMinus = Math.fround(0.5);
@@ -103,7 +98,6 @@ function simulate(baseAtk, strLv, wkWv, isCrit) {
         }
     }
 
-    // 3. Critical
     if (isCrit) {
         current = Math.fround(current * Math.fround(1.5));
     }
@@ -138,17 +132,15 @@ calcBtn.addEventListener('click', () => {
         let p2BestDiff = Infinity, p2Res = 0, p2Str = -1, p2Wk = -1;
 
         const levels = [-1]; 
-        for (let l = 0; l <= 255; l++) levels.push(l); // 0〜255レベル
+        for (let l = 0; l <= 255; l++) levels.push(l);
 
         for (const s of levels) {
             for (const w of levels) {
                 const res = simulate(baseAtk, s, w, isCrit);
-                
                 const d1 = Math.abs(res - targetDmg);
                 if (d1 < p1BestDiff) {
                     p1BestDiff = d1; p1Res = res; p1Str = s; p1Wk = w;
                 }
-
                 if (res >= targetDmg) {
                     const d2 = res - targetDmg;
                     if (d2 < p2BestDiff) {
@@ -179,8 +171,6 @@ function displayResult(prefix, val, str, wk, target) {
     const diffSign = diff >= 0 ? "+" : "";
     document.getElementById(`${prefix}_val`).innerText = val.toLocaleString();
     document.getElementById(`${prefix}_err`).innerText = `${t.errorLabel}: ${diffSign}${diff.toLocaleString()}`;
-    
-    // 表示の修正: -1なら「なし」、それ以外は数値をそのまま表示
     document.getElementById(`${prefix}_str`).innerText = str === -1 ? t.none : str;
     document.getElementById(`${prefix}_wk`).innerText = wk === -1 ? t.none : wk;
 }
