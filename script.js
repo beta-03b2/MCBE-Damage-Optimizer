@@ -56,7 +56,7 @@ const i18n = {
     }
 };
 
-const lang = navigator.language.startsWith('ja') ? 'ja' : 'en';
+const lang = navigator.language.startsWith('en') ? 'ja' : 'en';
 const t = i18n[lang];
 
 function applyLanguage() {
